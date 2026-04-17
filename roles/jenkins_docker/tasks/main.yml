@@ -5,8 +5,8 @@
       - dnf-plugins-core
       - firewalld
       - python3-firewall
-      - java-17-openjdk
-      - java-17-openjdk-devel
+      - java-21-openjdk
+      - java-21-openjdk-devel
     state: present
 
 - name: Check if Jenkins repository file exists
