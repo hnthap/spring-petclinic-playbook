@@ -1,0 +1,10 @@
+---
+sonar_db_name: "sonarqube"
+sonar_db_user: "sonar"
+sonar_db_password: "{{ vault_sonar_db_password }}"
+
+sonarqube_version: "26.3.0.120487"
+sonarqube_download_url: "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-26.3.0.120487.zip"
+
+nexus_version: "3.91.0-07"
+nexus_download_url: "https://download.sonatype.com/nexus/3/nexus-3.91.0-07-linux-x86_64.tar.gz"

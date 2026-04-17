@@ -1,0 +1,22 @@
+---
+- name: Target 1 - Control Node
+  hosts: control
+  become: true
+  pre_tasks:
+    - name: Print the executing user
+      ansible.builtin.debug:
+        msg: "{{ lookup('env', 'USER') }}"
+    - name: Demonstrate custom filter
+      ansible.builtin.debug:
+        msg: "{{ 'Deploying infrastructure' | make_uppercase }}"
+  roles:
+    - jenkins_docker
+
+- name: Target 2 - Target Node
+  hosts: target
+  become: true
+  strategy: free
+  roles:
+    - common
+    - nexus
+    - sonarqube

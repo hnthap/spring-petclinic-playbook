@@ -1,0 +1,57 @@
+---
+- name: Ensure Nexus service account exists
+  ansible.builtin.user:
+    name: "{{ nexus_user }}"
+    system: true
+    create_home: false
+    home: "{{ nexus_home }}"
+    shell: /bin/bash
+    state: present
+
+- block:
+    - name: Download Nexus archive
+      ansible.builtin.command:
+        cmd: "curl -L -o /opt/downloads/nexus-{{ nexus_version }}.tar.gz {{ nexus_download_url }}"
+      args:
+        creates: "/opt/downloads/nexus-{{ nexus_version }}.tar.gz"
+  rescue:
+    - name: Handle download failure
+      ansible.builtin.debug:
+        msg: "Nexus download failed! Check DNS or external internet access."
+
+- name: Unarchive Nexus
+  ansible.builtin.unarchive:
+    src: "/opt/downloads/nexus-{{ nexus_version }}.tar.gz"
+    dest: /opt
+    remote_src: true
+    creates: "{{ nexus_real_home }}"
+
+- name: Symlink Nexus home
+  ansible.builtin.file:
+    src: "{{ nexus_real_home }}"
+    dest: "{{ nexus_home }}"
+    state: link
+    force: true
+
+- name: Ensure Nexus and sonatype-work directories are owned by nexus user
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ nexus_user }}"
+    group: "{{ nexus_user }}"
+    recurse: true
+  loop:
+    - "{{ nexus_real_home }}"
+    - /opt/sonatype-work
+
+- name: Configure Nexus run_as_user
+  ansible.builtin.lineinfile:
+    path: "{{ nexus_home }}/bin/nexus.rc"
+    regexp: '^#?run_as_user='
+    line: 'run_as_user="{{ nexus_user }}"'
+    create: true
+
+- name: Create Nexus systemd service
+  ansible.builtin.template:
+    src: nexus.service.j2
+    dest: /etc/systemd/system/nexus.service
+    mode: "0644"

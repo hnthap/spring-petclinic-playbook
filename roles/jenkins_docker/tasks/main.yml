@@ -1,0 +1,156 @@
+---
+- name: Ensure base packages needed for repo management are present
+  ansible.builtin.dnf:
+    name:
+      - dnf-plugins-core
+      - firewalld
+      - python3-firewall
+      - java-17-openjdk
+      - java-17-openjdk-devel
+    state: present
+
+- name: Check if Jenkins repository file exists
+  ansible.builtin.stat:
+    path: "{{ jenkins_repo_file }}"
+  register: repo_file_check
+
+- name: Add Jenkins repository file
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+    dest: "{{ jenkins_repo_file }}"
+    mode: "0644"
+    timeout: 120
+  register: repo_download
+  until: repo_download is success
+  retries: 3
+  delay: 10
+  when: not repo_file_check.stat.exists
+
+- name: Check if Jenkins repository key exists
+  ansible.builtin.stat:
+    path: /tmp/jenkins.io-2023.key
+  register: repo_key_check
+
+- name: Download Jenkins repository key locally
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+    dest: /tmp/jenkins.io-2023.key
+    mode: "0644"
+    timeout: 120
+  register: key_download
+  until: key_download is success
+  retries: 3
+  delay: 10
+  when: not repo_key_check.stat.exists
+
+- name: Import Jenkins repository key from local file
+  ansible.builtin.rpm_key:
+    state: present
+    key: /tmp/jenkins.io-2023.key
+
+- name: Add Docker CE repository
+  ansible.builtin.command:
+    cmd: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  args:
+    creates: /etc/yum.repos.d/docker-ce.repo
+
+- name: Install Jenkins and Docker
+  ansible.builtin.dnf:
+    name:
+      - jenkins
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+
+- name: Ensure docker group exists
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: Add jenkins user to docker group
+  ansible.builtin.user:
+    name: jenkins
+    groups: docker
+    append: true
+  notify: Restart jenkins
+
+- name: Configure Docker insecure registry for Nexus Docker connector
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+    content: |
+      {
+        "insecure-registries" : ["{{ groups['target'][0] }}:8082"]
+      }
+  notify: Restart docker
+
+- name: Create systemd drop-in directory for Jenkins
+  ansible.builtin.file:
+    path: /etc/systemd/system/jenkins.service.d
+    state: directory
+    mode: "0755"
+
+- name: Disable Jenkins Setup Wizard and define JCasC path
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/jenkins.service.d/override.conf
+    mode: "0644"
+    content: |
+      [Service]
+      Environment="JAVA_OPTS=-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false -Dcasc.jenkins.config=/var/lib/jenkins/jenkins.yaml -Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true"
+
+- name: Ensure firewalld and docker are enabled and started
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop:
+    - firewalld
+    - docker
+
+- name: Download Jenkins Plugin Manager
+  ansible.builtin.get_url:
+    url: https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.15/jenkins-plugin-manager-2.12.15.jar
+    dest: /opt/jenkins-plugin-manager.jar
+    mode: "0755"
+
+- name: Install Jenkins Plugins via CLI
+  ansible.builtin.command:
+    cmd: >
+      java -jar /opt/jenkins-plugin-manager.jar
+      --war /usr/share/java/jenkins.war
+      --plugin-download-directory /var/lib/jenkins/plugins
+      --plugins configuration-as-code job-dsl workflow-aggregator git sonar nexus-artifact-uploader
+  become: true
+  become_user: jenkins
+
+- name: Deploy JCasC Configuration
+  ansible.builtin.template:
+    src: jenkins.yaml.j2
+    dest: /var/lib/jenkins/jenkins.yaml
+    owner: jenkins
+    group: jenkins
+    mode: "0644"
+  notify: Restart jenkins
+
+- name: Ensure Jenkins is enabled and started
+  ansible.builtin.systemd:
+    name: jenkins
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Open HTTP and Jenkins ports in firewalld
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - 80/tcp    # HTTP
+    - 8080/tcp  # Jenkins UI
+    - 8083/tcp  # Production deployment
+    - 8084/tcp  # UAT deployment

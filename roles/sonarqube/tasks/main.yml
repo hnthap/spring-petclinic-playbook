@@ -1,0 +1,160 @@
+---
+- name: Create SonarQube database user
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ sonar_db_user }}"
+    password: "{{ sonar_db_password }}"
+    state: present
+
+- name: Create SonarQube database
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ sonar_db_name }}"
+    owner: "{{ sonar_db_user }}"
+    state: present
+
+- name: Ensure SonarQube service account exists
+  ansible.builtin.user:
+    name: "{{ sonarqube_user }}"
+    system: true
+    create_home: false
+    home: "{{ sonarqube_home }}"
+    shell: /usr/sbin/nologin
+    state: present
+    
+- name: Configure SonarQube kernel parameters
+  ansible.builtin.template:
+    src: 99-sonarqube.conf.j2
+    dest: /etc/sysctl.d/99-sonarqube.conf
+    mode: "0644"
+
+- name: Apply sysctl settings
+  ansible.builtin.command: sysctl --system
+  changed_when: true
+
+- name: Ensure SonarQube runtime directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "/var/sonarqube", owner: "{{ sonarqube_user }}", group: "{{ sonarqube_user }}", mode: "0755" }
+    - { path: "/var/sonarqube/data", owner: "{{ sonarqube_user }}", group: "{{ sonarqube_user }}", mode: "0755" }
+    - { path: "/var/sonarqube/temp", owner: "{{ sonarqube_user }}", group: "{{ sonarqube_user }}", mode: "0755" }
+    - { path: "/var/sonarqube/logs", owner: "{{ sonarqube_user }}", group: "{{ sonarqube_user }}", mode: "0755" }
+    - { path: "/opt/downloads", owner: "root", group: "root", mode: "0755" }
+
+- block:
+    - name: Download SonarQube ZIP
+      ansible.builtin.command:
+        cmd: "curl -L -o /opt/downloads/sonarqube-{{ sonarqube_version }}.zip {{ sonarqube_download_url }}"
+      args:
+        creates: "/opt/downloads/sonarqube-{{ sonarqube_version }}.zip"
+  rescue:
+    - name: Handle download failure
+      ansible.builtin.debug:
+        msg: "SonarQube download failed! Check DNS or external internet access."
+
+- name: Unarchive SonarQube
+  ansible.builtin.unarchive:
+    src: "/opt/downloads/sonarqube-{{ sonarqube_version }}.zip"
+    dest: /opt
+    remote_src: true
+    creates: "{{ sonarqube_real_home }}"
+
+- name: Symlink SonarQube home
+  ansible.builtin.file:
+    src: "{{ sonarqube_real_home }}"
+    dest: "{{ sonarqube_home }}"
+    state: link
+    force: true
+
+- name: Ensure SonarQube files are owned by SonarQube user
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_user }}"
+    recurse: true
+  loop:
+    - "{{ sonarqube_real_home }}"
+    - /var/sonarqube
+
+- name: Configure SonarQube database username
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube_home }}/conf/sonar.properties"
+    regexp: '^#?sonar\.jdbc\.username='
+    line: "sonar.jdbc.username={{ sonar_db_user }}"
+
+- name: Configure SonarQube database password
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube_home }}/conf/sonar.properties"
+    regexp: '^#?sonar\.jdbc\.password='
+    line: "sonar.jdbc.password={{ sonar_db_password }}"
+
+- name: Configure SonarQube JDBC URL
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube_home }}/conf/sonar.properties"
+    regexp: '^#?sonar\.jdbc\.url='
+    line: "sonar.jdbc.url=jdbc:postgresql://127.0.0.1:5432/{{ sonar_db_name }}"
+
+- name: Configure SonarQube web host
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube_home }}/conf/sonar.properties"
+    regexp: '^#?sonar\.web\.host='
+    line: "sonar.web.host=0.0.0.0"
+
+- name: Configure SonarQube web port
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube_home }}/conf/sonar.properties"
+    regexp: '^#?sonar\.web\.port='
+    line: "sonar.web.port=9000"
+
+- name: Configure SonarQube data path
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube_home }}/conf/sonar.properties"
+    regexp: '^#?sonar\.path\.data='
+    line: "sonar.path.data=/var/sonarqube/data"
+
+- name: Configure SonarQube temp path
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube_home }}/conf/sonar.properties"
+    regexp: '^#?sonar\.path\.temp='
+    line: "sonar.path.temp=/var/sonarqube/temp"
+
+- name: Configure SonarQube logs path
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube_home }}/conf/sonar.properties"
+    regexp: '^#?sonar\.path\.logs='
+    line: "sonar.path.logs=/var/sonarqube/logs"
+
+- name: Create SonarQube systemd service
+  ansible.builtin.template:
+    src: sonarqube.service.j2
+    dest: /etc/systemd/system/sonarqube.service
+    mode: "0644"
+
+- name: Reload systemd so new unit files are known
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Ensure SonarQube and Nexus are enabled and started
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - sonarqube
+    - nexus
+
+- name: Open SonarQube and Nexus ports in firewalld
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - 9000/tcp
+    - 8081/tcp
+    - 8082/tcp

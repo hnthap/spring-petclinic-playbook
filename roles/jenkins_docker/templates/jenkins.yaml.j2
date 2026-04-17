@@ -1,0 +1,53 @@
+---
+jenkins:
+  systemMessage: "Configure automatically via JCasC"
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "NEXUS_REGISTRY"
+            value: "http://{{ groups['target'][0] }}:8082"
+          - key: "SONAR_HOST"
+            value: "http://{{ groups['target'][0] }}:9000"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              id: "sonar-token"
+              secret: "{{ vault_sonar_token }}"
+          - usernamePassword:
+              id: "nexus-credentials"
+              username: "{{ vault_nexus_username }}"
+              password: "{{ vault_nexus_password }}"
+
+jobs:
+  - script: |
+      multibranchPipelineJob('spring-petclinic-multibranch') {
+          branchSources {
+              git {
+                  id('petclinic-repo')
+                  remote('https://github.com/hnthap/spring-petclinic')
+              }
+          }
+          factory {
+              workflowBranchProjectFactory {
+                  scriptPath('Jenkinsfile')
+              }
+          }
+      }
+
+unclassified:
+  globalLibraries:
+    libraries:
+      - name: "my-shared-library"
+        defaultVersion: "main"
+        implicit: false
+        allowVersionOverride: true
+        retriever:
+          modernSCM:
+            scm:
+              git:
+                remote: "https://github.com/hnthap/spring-petclinic-shared-library"
+                traits:
+                  - gitBranchDiscovery

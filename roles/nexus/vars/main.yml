@@ -1,0 +1,4 @@
+---
+nexus_home: /opt/nexus
+nexus_real_home: "/opt/nexus-{{ nexus_version }}"
+nexus_user: nexus

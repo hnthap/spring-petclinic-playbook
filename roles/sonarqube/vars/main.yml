@@ -1,0 +1,4 @@
+---
+sonarqube_home: /opt/sonarqube
+sonarqube_real_home: "/opt/sonarqube-{{ sonarqube_version }}"
+sonarqube_user: sonarqube
