@@ -16,7 +16,7 @@
         creates: "/opt/downloads/nexus-{{ nexus_version }}.tar.gz"
   rescue:
     - name: Handle download failure
-      ansible.builtin.debug:
+      ansible.builtin.fail:
         msg: "Nexus download failed! Check DNS or external internet access."
 
 - name: Unarchive Nexus

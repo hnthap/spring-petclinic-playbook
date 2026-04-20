@@ -8,6 +8,7 @@
 
   vault_sonar_db_password: "CHANGE_ME_STRONG_PASSWORD"
   vault_nexus_username: "admin"
+  vault_slack_token: "TOKEN"
   vault_nexus_password: "PENDING"
   vault_sonar_token: "PENDING"
   ```

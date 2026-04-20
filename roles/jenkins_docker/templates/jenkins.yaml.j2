@@ -5,9 +5,11 @@ jenkins:
     - envVars:
         env:
           - key: "NEXUS_REGISTRY"
-            value: "http://{{ groups['target'][0] }}:8082"
+            value: "http://{{ groups['shared_services'][0] }}:8082"
           - key: "SONAR_HOST"
-            value: "http://{{ groups['target'][0] }}:9000"
+            value: "http://{{ groups['shared_services'][0] }}:9000"
+          - key: "APP_TARGET_IP"
+            value: "{{ groups['build_servers'][0] }}"
 
 credentials:
   system:
@@ -51,3 +53,7 @@ unclassified:
                 remote: "https://github.com/hnthap/spring-petclinic-shared-library"
                 traits:
                   - gitBranchDiscovery
+  
+  slackNotifier:
+    teamDomain: "alice-labs-group"
+    tokenCredentialId: "{{ vault_slack_token }}"

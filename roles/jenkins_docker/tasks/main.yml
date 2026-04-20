@@ -83,7 +83,7 @@
     mode: "0644"
     content: |
       {
-        "insecure-registries" : ["{{ groups['target'][0] }}:8082"]
+        "insecure-registries" : ["{{ groups['shared_services'][0] }}:8082"]
       }
   notify: Restart docker
 
@@ -123,9 +123,10 @@
       java -jar /opt/jenkins-plugin-manager.jar
       --war /usr/share/java/jenkins.war
       --plugin-download-directory /var/lib/jenkins/plugins
-      --plugins configuration-as-code job-dsl workflow-aggregator git sonar nexus-artifact-uploader
+      --plugins configuration-as-code job-dsl workflow-aggregator git sonar nexus-artifact-uploader slack
   become: true
   become_user: jenkins
+  register: plugin_install
 
 - name: Deploy JCasC Configuration
   ansible.builtin.template:

@@ -54,7 +54,7 @@
         creates: "/opt/downloads/sonarqube-{{ sonarqube_version }}.zip"
   rescue:
     - name: Handle download failure
-      ansible.builtin.debug:
+      ansible.builtin.fail:
         msg: "SonarQube download failed! Check DNS or external internet access."
 
 - name: Unarchive SonarQube

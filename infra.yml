@@ -1,6 +1,6 @@
 ---
-- name: Target 1 - Control Node
-  hosts: control
+- name: Target 1 - Build Servers
+  hosts: build_servers
   become: true
   pre_tasks:
     - name: Print the executing user
@@ -12,8 +12,8 @@
   roles:
     - jenkins_docker
 
-- name: Target 2 - Target Node
-  hosts: target
+- name: Target 2 - Shared Services
+  hosts: shared_services
   become: true
   strategy: free
   roles:
