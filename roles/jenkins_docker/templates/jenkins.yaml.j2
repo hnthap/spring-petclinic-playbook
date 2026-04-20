@@ -22,6 +22,9 @@ credentials:
               id: "nexus-credentials"
               username: "{{ vault_nexus_username }}"
               password: "{{ vault_nexus_password }}"
+          - string:
+              id: "slack-token"
+              secret: "{{ vault_slack_token }}"
 
 jobs:
   - script: |
@@ -56,4 +59,4 @@ unclassified:
   
   slackNotifier:
     teamDomain: "alice-labs-group"
-    tokenCredentialId: "{{ vault_slack_token }}"
+    tokenCredentialId: "slack-token"
