@@ -8,16 +8,14 @@
     shell: /bin/bash
     state: present
 
-- block:
-    - name: Download Nexus archive
-      ansible.builtin.command:
-        cmd: "curl -L -o /opt/downloads/nexus-{{ nexus_version }}.tar.gz {{ nexus_download_url }}"
-      args:
-        creates: "/opt/downloads/nexus-{{ nexus_version }}.tar.gz"
-  rescue:
-    - name: Handle download failure
-      ansible.builtin.fail:
-        msg: "Nexus download failed! Check DNS or external internet access."
+- name: Download Nexus archive
+  ansible.builtin.get_url:
+    url: "{{ nexus_download_url }}"
+    dest: /opt/downloads/nexus-{{ nexus_version }}.tar.gz
+    mode: "0644"
+    timeout: 120
+    retries: 3
+    delay: 10
 
 - name: Unarchive Nexus
   ansible.builtin.unarchive:

@@ -1,27 +1,7 @@
----
-- name: Update apt cache
-  ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
-
-- name: Disable UFW to prevent conflicts with firewalld
-  community.general.ufw:
-    state: disabled
-
-- name: Install Java, PostgreSQL, unzip, firewalld and Python dependencies
-  ansible.builtin.apt:
-    name:
-      - openjdk-21-jre-headless
-      - postgresql
-      - postgresql-contrib
-      - python3-psycopg2
-      - firewalld
-      - python3-firewall
-      - unzip
-      - curl
-      - acl
-    state: present
-    
+--- 
+- name: Include OS-specific setup tasks
+  ansible.builtin.include_tasks: "setup-{{ ansible_os_family }}.yml"
+  
 - name: Ensure PostgreSQL and firewalld are enabled and started
   ansible.builtin.systemd:
     name: "{{ item }}"

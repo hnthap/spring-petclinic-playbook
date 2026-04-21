@@ -27,10 +27,7 @@
     src: 99-sonarqube.conf.j2
     dest: /etc/sysctl.d/99-sonarqube.conf
     mode: "0644"
-
-- name: Apply sysctl settings
-  ansible.builtin.command: sysctl --system
-  changed_when: true
+  notify: Apply sysctl
 
 - name: Ensure SonarQube runtime directories exist
   ansible.builtin.file:
@@ -46,16 +43,14 @@
     - { path: "/var/sonarqube/logs", owner: "{{ sonarqube_user }}", group: "{{ sonarqube_user }}", mode: "0755" }
     - { path: "/opt/downloads", owner: "root", group: "root", mode: "0755" }
 
-- block:
-    - name: Download SonarQube ZIP
-      ansible.builtin.command:
-        cmd: "curl -L -o /opt/downloads/sonarqube-{{ sonarqube_version }}.zip {{ sonarqube_download_url }}"
-      args:
-        creates: "/opt/downloads/sonarqube-{{ sonarqube_version }}.zip"
-  rescue:
-    - name: Handle download failure
-      ansible.builtin.fail:
-        msg: "SonarQube download failed! Check DNS or external internet access."
+- name: Download SonarQube ZIP
+  ansible.builtin.get_url:
+    url: "{{ sonarqube_download_url }}"
+    dest: "/opt/downloads/sonarqube-{{ sonarqube_version }}.zip"
+    mode: "0644"
+    timeout: 120
+    retries: 3
+    delay: 10
 
 - name: Unarchive SonarQube
   ansible.builtin.unarchive:
