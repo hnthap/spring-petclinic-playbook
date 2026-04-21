@@ -1,0 +1,13 @@
+---
+- name: Include OS-specific setup tasks
+  ansible.builtin.include_tasks: "setup-{{ ansible_os_family }}.yml"
+
+- name: Configure Docker insecure registry for Nexus Docker connector
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+    content: |
+      {
+        "insecure-registries" : ["{{ groups['shared_services'][0] }}:8082"]
+      }
+  notify: Restart Docker

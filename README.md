@@ -11,6 +11,19 @@
   vault_slack_token: "TOKEN"
   vault_nexus_password: "PENDING"
   vault_sonar_token: "PENDING"
+  vault_azure_ssh_key: "CHANGE_ME"
+
+  # To acquire the SSH key, run:
+  #
+  #   cat ~/.ssh/id_25519
+  #
+  # Then copy and paste the text in place of "CHANGE_ME", for example:
+  #
+  #   vault_azure_ssh_key: |
+  #     -----BEGIN OPENSSH PRIVATE KEY-----
+  #     (paste your exact key contents here)
+  #     (make sure all lines are indented identically)
+  #     -----END OPENSSH PRIVATE KEY-----
   ```
 2. Execute the playbook:
   ```bash

@@ -10,7 +10,9 @@
       ansible.builtin.debug:
         msg: "{{ 'Deploying infrastructure' | make_uppercase }}"
   roles:
-    - jenkins_docker
+    - build_common
+    - docker
+    - jenkins
 
 - name: Target 2 - Shared Services
   hosts: shared_services
@@ -20,3 +22,10 @@
     - common
     - nexus
     - sonarqube
+
+- name: Target 3 - Production App
+  hosts: production_app
+  become: true
+  roles:
+    - build_common
+    - docker

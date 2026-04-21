@@ -1,0 +1,28 @@
+---
+- name: Check if Jenkins repository file exists
+  ansible.builtin.stat:
+    path: "{{ jenkins_repo_file }}"
+  register: repo_file_check
+
+- name: Add Jenkins repository file
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+    dest: "{{ jenkins_repo_file }}"
+    mode: "0644"
+    timeout: 120
+  register: repo_download
+  until: repo_download is success
+  retries: 3
+  delay: 10
+  when: not repo_file_check.stat.exists
+
+- name: Import Jenkins repository key from local file
+  ansible.builtin.rpm_key:
+    state: present
+    key: /tmp/jenkins.io-2023.key
+
+- name: Install Jenkins
+  ansible.builtin.dnf:
+    name:
+      - jenkins
+    state: present

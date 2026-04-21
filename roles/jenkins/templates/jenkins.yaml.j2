@@ -9,7 +9,7 @@ jenkins:
           - key: "SONAR_HOST"
             value: "http://{{ groups['shared_services'][0] }}:9000"
           - key: "APP_TARGET_IP"
-            value: "{{ groups['build_servers'][0] }}"
+            value: "{{ groups['production_app'][0] }}"
 
 credentials:
   system:
@@ -25,6 +25,12 @@ credentials:
           - string:
               id: "slack-token"
               secret: "{{ vault_slack_token }}"
+          - basicSSHUserPrivateKey:
+              id: "azure-ssh-key"
+              username: "{{ hostvars[groups['production_app'][0]]['ansible_user'] }}"
+              privateKeySource:
+                directEntry:
+                  privateKey: "{{ vault_azure_ssh_key }}"
 
 jobs:
   - script: |

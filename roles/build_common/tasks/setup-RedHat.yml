@@ -1,0 +1,10 @@
+---
+- name: Ensure base packages needed for repo management are present
+  ansible.builtin.dnf:
+    name:
+      - dnf-plugins-core
+      - firewalld
+      - python3-firewall
+      - java-21-openjdk
+      - java-21-openjdk-devel
+    state: present

@@ -12,17 +12,7 @@
     name: jenkins
     groups: docker
     append: true
-  notify: Restart jenkins
-
-- name: Configure Docker insecure registry for Nexus Docker connector
-  ansible.builtin.copy:
-    dest: /etc/docker/daemon.json
-    mode: "0644"
-    content: |
-      {
-        "insecure-registries" : ["{{ groups['shared_services'][0] }}:8082"]
-      }
-  notify: Restart docker
+  notify: Restart Jenkins
 
 - name: Create systemd drop-in directory for Jenkins
   ansible.builtin.file:
@@ -72,7 +62,7 @@
     owner: jenkins
     group: jenkins
     mode: "0644"
-  notify: Restart jenkins
+  notify: Restart Jenkins
 
 - name: Ensure Jenkins is enabled and started
   ansible.builtin.systemd:
