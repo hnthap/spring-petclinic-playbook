@@ -2,7 +2,7 @@
 - name: Ensure base packages needed for repo management are present
   ansible.builtin.apt:
     name:
-      - openjdk-21-jre-headless
+      - openjdk-21-jdk-headless
       - firewalld
       - python3-firewall
       - apt-transport-https
