@@ -23,11 +23,11 @@
     cmd: postgresql-setup --initdb
   when: not pg_initialized.stat.exists
 
-- name: Update PostgreSQL authentication method from ident to scram-sha-256
+- name: Update PostgreSQL authentication method to md5
   ansible.builtin.replace:
     path: /var/lib/pgsql/data/pg_hba.conf
-    regexp: 'ident$'
-    replace: 'scram-sha-256'
+    regexp: '\b(ident|scram-sha-256)\b'
+    replace: 'md5'
   register: pg_hba_update
 
 - name: Restart PostgreSQL if pg_hba.conf was updated
