@@ -11,3 +11,9 @@
         "insecure-registries" : ["{{ groups['shared_services'][0] }}:8082"]
       }
   notify: Restart Docker
+
+- name: Add remote user to the docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
