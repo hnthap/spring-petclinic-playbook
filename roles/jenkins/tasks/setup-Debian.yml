@@ -2,12 +2,12 @@
 - name: Download Jenkins GPG key
   ansible.builtin.get_url:
     url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
-    dest: /etc/apt/keyrings/jenkins.asc
+    dest: /etc/apt/keyrings/jenkins-2026.asc
     mode: "0644"
 
 - name: Add Jenkins apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/jenkins.asc] https://pkg.jenkins.io/debian-stable binary/"
+    repo: "deb [signed-by=/etc/apt/keyrings/jenkins-2026.asc] https://pkg.jenkins.io/debian-stable binary/"
     state: present
     update_cache: true
 
