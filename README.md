@@ -15,7 +15,7 @@
 
   # To acquire the SSH key, run:
   #
-  #   cat ~/.ssh/id_25519
+  #   cat ~/.ssh/id_ed25519
   #
   # Then copy and paste the text in place of "CHANGE_ME", for example:
   #
@@ -27,7 +27,8 @@
   ```
 2. Execute the playbook:
   ```bash
-  # You can define CONTROL_IP_ADDR and TARGET_IP_ADDR to override the default
+  # You can define BUILD_SERVERS_IP_ADDR, SHARED_SERVICES_IP_ADDR,
+  and PRODUCTION_APP_IP_ADDR to override the default
   # IP addresses in inventory.py
 
   ansible-playbook -i inventory.py infra.yml -K --ask-vault-pass
