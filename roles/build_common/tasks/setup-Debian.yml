@@ -9,6 +9,7 @@
       - ca-certificates
       - curl
       - gnupg
+      - acl
     state: present
     update_cache: true
 
