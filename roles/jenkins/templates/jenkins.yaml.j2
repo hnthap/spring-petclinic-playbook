@@ -30,7 +30,7 @@ credentials:
               username: "{{ hostvars[groups['production_app'][0]]['ansible_user'] }}"
               privateKeySource:
                 directEntry:
-                  privateKey: "{{ vault_azure_ssh_key }}"
+                  privateKey: {{ vault_azure_ssh_key | to_json }}
 
 jobs:
   - script: |
